@@ -1,0 +1,37 @@
+{
+  "baseline": {
+    "label": "baseline",
+    "config": {
+      "profile": "baseline",
+      "anomaly_window": 60,
+      "z_score_threshold": 3.0,
+      "min_request_count": 20,
+      "consecutive_breaches": 3,
+      "alert_cooldown": 15,
+      "warmup_samples": 12
+    },
+    "injected_at": 1789394701.6673367,
+    "detected_at": "2026-09-14T14:05:06.388750+00:00",
+    "incident_id": "INC-2026-0914-002",
+    "mttd_seconds": 4.489,
+    "status": "detected"
+  },
+  "optimized": {
+    "label": "optimized",
+    "config": {
+      "profile": "optimized",
+      "anomaly_window": 20,
+      "z_score_threshold": 2.5,
+      "min_request_count": 8,
+      "consecutive_breaches": 2,
+      "alert_cooldown": 8,
+      "warmup_samples": 6
+    },
+    "injected_at": 1789394763.683843,
+    "detected_at": "2026-09-14T14:06:06.637539+00:00",
+    "incident_id": "INC-2026-0914-004",
+    "mttd_seconds": 2.707,
+    "status": "detected"
+  },
+  "improvement_pct": 39.7
+}

@@ -1,0 +1,137 @@
+services:
+  api-gateway:
+    build:
+      context: ./services
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      USER_SERVICE_URL: http://user-service:8001
+      PAYMENT_SERVICE_URL: http://payment-service:8002
+      NOTIFICATION_SERVICE_URL: http://notification-service:8003
+    ports:
+      - "8000:8000"
+    depends_on:
+      user-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ./services
+      dockerfile: user-service/Dockerfile
+    environment:
+      PAYMENT_SERVICE_URL: http://payment-service:8002
+    ports:
+      - "8001:8001"
+    depends_on:
+      - payment-service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./services
+      dockerfile: payment-service/Dockerfile
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./services
+      dockerfile: notification-service/Dockerfile
+    ports:
+      - "8003:8003"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+    restart: unless-stopped
+
+  load-generator:
+    build:
+      context: .
+      dockerfile: load-generator/Dockerfile
+    environment:
+      GATEWAY_URL: http://api-gateway:8000
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=6h"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  anomaly-engine:
+    build:
+      context: ./anomaly-engine
+    env_file:
+      - .env
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3030}
+      ANOMALY_WINDOW: ${ANOMALY_WINDOW:-60}
+      Z_SCORE_THRESHOLD: ${Z_SCORE_THRESHOLD:-3.0}
+      MIN_REQUEST_COUNT: ${MIN_REQUEST_COUNT:-20}
+      CONSECUTIVE_BREACHES: ${CONSECUTIVE_BREACHES:-3}
+      ALERT_COOLDOWN: ${ALERT_COOLDOWN:-30}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      PAYMENT_SERVICE_URL: http://payment-service:8002
+      USER_SERVICE_URL: http://user-service:8001
+      API_GATEWAY_URL: http://api-gateway:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8003
+    ports:
+      - "8080:8080"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3030:80"
+    depends_on:
+      - anomaly-engine
+    restart: unless-stopped
+
+networks:
+  default:
+    name: observability_net

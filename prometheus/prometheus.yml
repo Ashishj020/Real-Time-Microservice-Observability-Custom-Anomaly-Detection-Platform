@@ -1,0 +1,29 @@
+global:
+  scrape_interval: 1s
+  scrape_timeout: 900ms
+  evaluation_interval: 2s
+
+scrape_configs:
+  - job_name: api-gateway
+    static_configs:
+      - targets: ["api-gateway:8000"]
+        labels:
+          service: api-gateway
+
+  - job_name: user-service
+    static_configs:
+      - targets: ["user-service:8001"]
+        labels:
+          service: user-service
+
+  - job_name: payment-service
+    static_configs:
+      - targets: ["payment-service:8002"]
+        labels:
+          service: payment-service
+
+  - job_name: notification-service
+    static_configs:
+      - targets: ["notification-service:8003"]
+        labels:
+          service: notification-service

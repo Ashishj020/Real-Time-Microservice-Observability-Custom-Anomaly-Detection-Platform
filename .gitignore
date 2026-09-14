@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.env
+*.log
+.DS_Store
+.idea/
+.vscode/
+prometheus/data/
